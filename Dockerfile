@@ -2,16 +2,31 @@ FROM ubuntu:24.04
 
 RUN apt update
 RUN apt upgrade -y
-
+# Necessary for `git clone`
 RUN apt install -y --no-install-recommends git ca-certificates
+# Necessary for kernel `make *config`
+RUN apt install -y --no-install-recommends make gcc flex bison libc6-dev
+# Necessary for kernel build
+RUN apt install -y --no-install-recommends bc xz-utils libelf-dev libssl-dev
+# Necessary for Busybox build and install
+RUN apt install -y --no-install-recommends bzip2
+# Necessary to build initramfs
+RUN apt install -y --no-install-recommends cpio
+# Necessary to build ISO image
+RUN apt install -y --no-install-recommends grub2 xorriso
 
-RUN mkdir -p /src && cd /src && \
+RUN mkdir -p /src/iso/boot/grub
+COPY ["files", "/src/files/"]
+
+RUN cd /src && \
     git clone --depth=1 -b v6.14 https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git
 
-COPY initramfs_xz.config /src/linux/kernel/configs/initramfs_xz.config
-COPY x86_64_min.config /src/linux/kernel/configs/x86_64_min.config
+RUN cd /src && \
+    git clone --depth=1 -b 1_37_stable https://git.busybox.net/busybox
 
-RUN apt install -y --no-install-recommends make gcc flex bison libc6-dev
+RUN mv /src/files/x86_64_min.config \
+       /src/files/initramfs_xz.config \
+       /src/linux/kernel/configs/
 
 RUN cd /src/linux && \
     make distclean && \
@@ -21,13 +36,8 @@ RUN cd /src/linux && \
     make initramfs_xz.config && \
     make mod2yesconfig
 
-RUN apt install -y --no-install-recommends bc xz-utils libelf-dev libssl-dev
-
 RUN cd /src/linux && \
     make -j`nproc`
-
-RUN cd /src && \
-    git clone --depth=1 -b 1_37_stable https://git.busybox.net/busybox
 
 RUN cd /src/busybox && \
     make distclean && \
@@ -35,16 +45,12 @@ RUN cd /src/busybox && \
     sed -i 's/CONFIG_TC=y/CONFIG_TC=n/' .config && \
     echo "CONFIG_STATIC=y" >> .config
 
-RUN apt install -y --no-install-recommends bzip2
-
 RUN cd /src/busybox && \
     make -j`nproc` && \
     echo "CONFIG_STATIC=y" >> .config && \
     make install
 
-RUN apt install -y --no-install-recommends cpio
-
-COPY init /src/busybox/_install/init
+RUN mv /src/files/init /src/busybox/_install/
 
 RUN cd /src/busybox/_install && \
     mkdir dev proc sys && \
@@ -52,11 +58,7 @@ RUN cd /src/busybox/_install && \
     chmod u+s bin/busybox && \
     find . -print0 | cpio --null -ov --format=newc | xz -9 --check=crc32 > ../initramfs.cpio.xz
 
-RUN apt install -y --no-install-recommends grub2 xorriso
-
-RUN mkdir -p /src/iso/boot/grub
-
-COPY grub.cfg /src/iso/boot/grub
+RUN mv /src/files/grub.cfg /src/iso/boot/grub/
 
 RUN cd /src && \
     cp linux/arch/x86/boot/bzImage iso/boot/ && \
