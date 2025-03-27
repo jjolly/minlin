@@ -16,6 +16,13 @@ docker run --rm -v `pwd`/iso:/minlin/iso jjolly/minlin
 
 Of course you want to create the folder you want the iso to land in. If you don't supply a volume mapping, the iso will be copied to the `/minlin/iso` folder inside the quickly-deleted container. Kind of useless, so use a volume map.
 
+Want to boot the image? Then install `qemu-system-x86` and run this command:
+```
+qemu-system-x86_64 -cdrom iso/minlin.iso -nographic
+```
+
+Want to experience a kernel panic? Exit the shell. That's how raw this is.
+
 ## What
 I'm building a very low-feature kernel starting with making the `allnoconfig` target and adding what I need to make this work. There are a few extra files that help add necessary functionality and might need a little explanation:
 * `x86_64_min.config`: This file adds kernel config options to allow the kernel to load 64-bit ELF-formatted executables using the init script.
