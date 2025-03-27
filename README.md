@@ -38,3 +38,10 @@ I've done this once already, waaay back in 2016. The old one no longer works and
 
 ## Who
 Most of this is from the [wonderful post by Hirbod Behnam](https://medium.com/@ThyCrow/compiling-the-linux-kernel-and-creating-a-bootable-iso-from-it-6afb8d23ba22). I've made my own changes, but this article does 90% of the heavy lifting.
+
+## Next
+* Slim down grub. It's over half the final ISO. That's just wrong
+* arm64 support. Heck, let's do all the architectures!
+* Test on real hardware
+* Put the build part into a script and let that happen when the container is run
+* Fix the Busybox build system (outside the scope of this project)
